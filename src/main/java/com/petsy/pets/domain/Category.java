@@ -1,4 +1,4 @@
-package com.petsy.pets;
+package com.petsy.pets.domain;
 
 import lombok.Data;
 
@@ -9,7 +9,8 @@ import javax.persistence.Id;
 
 @Entity
 @Data
-public class Pet {
+public class Category {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
