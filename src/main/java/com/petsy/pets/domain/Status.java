@@ -1,6 +1,6 @@
 package com.petsy.pets.domain;
 
-public enum Status {
+enum Status {
     available,
     pending,
     sold

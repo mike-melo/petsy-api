@@ -9,7 +9,7 @@ import javax.persistence.Id;
 
 @Entity
 @Data
-public class Category {
+class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
