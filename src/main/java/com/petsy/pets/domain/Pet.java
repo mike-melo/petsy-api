@@ -1,6 +1,7 @@
 package com.petsy.pets.domain;
 
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.*;
 
@@ -18,4 +19,7 @@ public class Pet {
 
     private Status status;
 
+    public boolean isValid() {
+        return StringUtils.isNotEmpty(this.name);
+    }
 }
