@@ -1,24 +1,67 @@
 package com.petsy;
 
+import com.petsy.pets.domain.Pet;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.hateoas.Link;
+import org.springframework.hateoas.Resource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.testng.annotations.Test;
+
+import java.util.Collections;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.testng.Assert.fail;
 
 @Test
 public class PetsyApiIntegrationTest extends BaseIntegrationTest {
 
-    public void getAllPets() {
+    public void addAndGetAPet() {
+        Pet petAdded = new Pet();
+        petAdded.setName("Doggie");
 
+        Link linkToPostedPet = addPet(petAdded);
+        Pet petRetrieved = getPet(linkToPostedPet);
+
+        assertThat(petRetrieved).isEqualTo(petAdded);
     }
 
-    public void getAnIndividualPet() {
+    public void addAndRemoveAPet() {
+        Pet petAdded = new Pet();
+        petAdded.setName("Doggie");
 
+        Link linkToPostedPet = addPet(petAdded);
+        deletePet(linkToPostedPet);
+
+        try {
+            getPet(linkToPostedPet);
+            fail("An HttpClientErrorException should have been thrown with an HTTP 404 Not Found status code");
+        } catch(HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
     }
 
-    public void addAPet() {
-
+    private Link addPet(Pet pet) {
+        ResponseEntity<Resource<Pet>> postResponseEntity =
+                getRestTemplate().exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(pet), new ParameterizedTypeReference<Resource<Pet>>() {
+                }, Collections.emptyMap());
+        return postResponseEntity.getBody().getLinks().get(0);
     }
 
-    public void deleteAPet() {
-
+    private void deletePet(Link link) {
+        getRestTemplate().exchange(link.getHref(), HttpMethod.DELETE, null, new ParameterizedTypeReference<Resource<Pet>>() {
+        }, Collections.emptyMap());
     }
 
+    private Pet getPet(Link link) {
+        ResponseEntity<Resource<Pet>> responseEntity =
+                getRestTemplate().exchange(link.getHref(), HttpMethod.GET, null, new ParameterizedTypeReference<Resource<Pet>>() {
+                }, Collections.emptyMap());
+
+        Resource<Pet> petResource = responseEntity.getBody();
+        return petResource.getContent();
+    }
 }
