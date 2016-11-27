@@ -10,6 +10,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -21,6 +22,8 @@ import static org.testng.Assert.fail;
 
 @Test
 public class PetsyApiIntegrationTest extends BaseIntegrationTest {
+
+    private List<Link> linksToPetsAdded = new ArrayList<>();
 
     public void getAllPets() {
         Pet dog = makePetWith("Doggie");
@@ -70,7 +73,11 @@ public class PetsyApiIntegrationTest extends BaseIntegrationTest {
         ResponseEntity<Resource<Pet>> postResponseEntity =
                 getRestTemplate().exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(pet), new ParameterizedTypeReference<Resource<Pet>>() {
                 }, Collections.emptyMap());
-        return postResponseEntity.getBody().getLinks().get(0);
+
+        Link linkToAddedPet = postResponseEntity.getBody().getLinks().get(0);
+        linksToPetsAdded.add(linkToAddedPet);
+
+        return linkToAddedPet;
     }
 
     private void deletePet(Link link) {
@@ -94,5 +101,22 @@ public class PetsyApiIntegrationTest extends BaseIntegrationTest {
 
         Resources<Pet> petResource = responseEntity.getBody();
         return new ArrayList<>(petResource.getContent());
+    }
+
+    @BeforeMethod
+    public void defensivelyRemoveAllPets() {
+        linksToPetsAdded.parallelStream().forEach(link -> {
+            try {
+                deletePet(link);
+            } catch (HttpClientErrorException e) {
+                //If the pet isn't found, it was probably removed in the test.
+                //If there's a different error code, re-throw it as it means
+                //something unexpected happened.
+                if (!HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {
+                    throw e;
+                }
+            }
+        });
+        linksToPetsAdded.clear();
     }
 }
