@@ -4,6 +4,7 @@ import com.petsy.pets.domain.Pet;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
+import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -11,7 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.testng.Assert.fail;
@@ -19,9 +22,22 @@ import static org.testng.Assert.fail;
 @Test
 public class PetsyApiIntegrationTest extends BaseIntegrationTest {
 
+    public void getAllPets() {
+        Pet dog = makePetWith("Doggie");
+        Pet cat = makePetWith("Kitty");
+
+        addPet(dog);
+        addPet(cat);
+
+        List<Pet> pets = getPets();
+
+        assertThat(pets.size()).isEqualTo(2);
+        assertThat(pets.get(0)).isEqualTo(dog);
+        assertThat(pets.get(1)).isEqualTo(cat);
+    }
+
     public void addAndGetAPet() {
-        Pet petAdded = new Pet();
-        petAdded.setName("Doggie");
+        Pet petAdded = makePetWith("Doggie");
 
         Link linkToPostedPet = addPet(petAdded);
         Pet petRetrieved = getPet(linkToPostedPet);
@@ -30,7 +46,7 @@ public class PetsyApiIntegrationTest extends BaseIntegrationTest {
     }
 
     public void addAndRemoveAPet() {
-        Pet petAdded = new Pet();
+        Pet petAdded = makePetWith("Doggie");
         petAdded.setName("Doggie");
 
         Link linkToPostedPet = addPet(petAdded);
@@ -39,9 +55,15 @@ public class PetsyApiIntegrationTest extends BaseIntegrationTest {
         try {
             getPet(linkToPostedPet);
             fail("An HttpClientErrorException should have been thrown with an HTTP 404 Not Found status code");
-        } catch(HttpClientErrorException e) {
+        } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
+    }
+
+    private Pet makePetWith(String name) {
+        Pet pet = new Pet();
+        pet.setName(name);
+        return pet;
     }
 
     private Link addPet(Pet pet) {
@@ -63,5 +85,14 @@ public class PetsyApiIntegrationTest extends BaseIntegrationTest {
 
         Resource<Pet> petResource = responseEntity.getBody();
         return petResource.getContent();
+    }
+
+    private ArrayList<Pet> getPets() {
+        ResponseEntity<Resources<Pet>> responseEntity =
+                getRestTemplate().exchange(getBaseUrl(), HttpMethod.GET, null, new ParameterizedTypeReference<Resources<Pet>>() {
+                }, Collections.emptyMap());
+
+        Resources<Pet> petResource = responseEntity.getBody();
+        return new ArrayList<>(petResource.getContent());
     }
 }
